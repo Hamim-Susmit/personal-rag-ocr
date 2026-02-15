@@ -11,6 +11,7 @@ class Settings:
     index_dir: Path = Path(os.getenv("INDEX_DIR", "data/index"))
     sqlite_path: Path = Path(os.getenv("SQLITE_PATH", "data/metadata.db"))
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+    embedding_dim: int = int(os.getenv("EMBEDDING_DIM", "384"))
     chunk_size: int = int(os.getenv("CHUNK_SIZE", "800"))
     chunk_overlap: int = int(os.getenv("CHUNK_OVERLAP", "120"))
     top_k: int = int(os.getenv("TOP_K", "5"))

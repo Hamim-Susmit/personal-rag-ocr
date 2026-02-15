@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import sqlite3
 
@@ -40,10 +41,14 @@ class MetadataStore:
             )
             """
         )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_chunks_doc_id ON chunks(doc_id)")
         self.conn.commit()
 
     def get_doc_by_path(self, file_path: str) -> sqlite3.Row | None:
         return self.conn.execute("SELECT * FROM documents WHERE file_path = ?", (file_path,)).fetchone()
+
+    def list_documents(self) -> list[sqlite3.Row]:
+        return self.conn.execute("SELECT doc_id, file_path FROM documents").fetchall()
 
     def upsert_document(self, doc_id: str, file_path: str, file_name: str, file_hash: str) -> None:
         self.conn.execute(
@@ -64,11 +69,16 @@ class MetadataStore:
         self.conn.execute("DELETE FROM chunks WHERE doc_id = ?", (doc_id,))
         self.conn.commit()
 
+    def delete_document(self, doc_id: str) -> None:
+        self.conn.execute("DELETE FROM chunks WHERE doc_id = ?", (doc_id,))
+        self.conn.execute("DELETE FROM documents WHERE doc_id = ?", (doc_id,))
+        self.conn.commit()
+
     def insert_chunks(self, chunks: list[Chunk]) -> None:
         self.conn.executemany(
             "INSERT INTO chunks(chunk_id, doc_id, file_name, chunk_index, locator, text, metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
             [
-                (c.chunk_id, c.doc_id, c.file_name, c.chunk_index, c.locator, c.text, str(c.metadata))
+                (c.chunk_id, c.doc_id, c.file_name, c.chunk_index, c.locator, c.text, json.dumps(c.metadata, ensure_ascii=False))
                 for c in chunks
             ],
         )
