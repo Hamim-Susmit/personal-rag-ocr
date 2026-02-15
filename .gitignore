@@ -13,3 +13,5 @@ personal-rag/data/raw_docs/*
 personal-rag/**/__pycache__/
 .env
 docker-compose.override.yml
+personal-rag/data/metadata.db
+*.db
