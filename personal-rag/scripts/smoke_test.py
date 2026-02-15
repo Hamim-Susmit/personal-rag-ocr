@@ -28,9 +28,9 @@ def main() -> None:
         summary = indexer.index_path(docs)
         indexer.close()
 
-        embedder = Embedder(settings.embedding_model)
+        embedder = Embedder(settings.embedding_model, dim=settings.embedding_dim)
         ms = MetadataStore(db)
-        vs = VectorStore(idx_dir, dim=384)
+        vs = VectorStore(idx_dir, dim=settings.embedding_dim)
         retriever = Retriever(embedder, vs, ms)
         results = retriever.retrieve("When is passport renewal appointment?", 3)
         ms.close()

@@ -25,15 +25,23 @@ with index_tab:
     status = st.empty()
     progress = st.progress(0)
     if st.button("Index"):
-        idx = Indexer(settings)
+        root = Path(path_str)
+        if not root.exists() or not root.is_dir():
+            st.error("Document folder does not exist or is not a directory.")
+        else:
+            idx = Indexer(settings)
 
-        def on_progress(current: int, total: int, msg: str) -> None:
-            progress.progress(current / max(total, 1))
-            status.info(msg)
+            def on_progress(current: int, total: int, msg: str) -> None:
+                progress.progress(current / max(total, 1))
+                status.info(msg)
 
-        summary = idx.index_path(Path(path_str), progress_cb=on_progress)
-        idx.close()
-        st.success(f"Done. Total={summary['total']} Reindexed={summary['reindexed']} Skipped={summary['skipped']}")
+            summary = idx.index_path(root, progress_cb=on_progress)
+            idx.close()
+            st.success(
+                "Done. "
+                f"Total={summary['total']} Reindexed={summary['reindexed']} Skipped={summary['skipped']} "
+                f"Deleted={summary['deleted']} Failed={summary['failed']}"
+            )
 
 with chat_tab:
     st.subheader("Ask questions")
@@ -42,13 +50,13 @@ with chat_tab:
         if not question.strip():
             st.warning("Please enter a question.")
         else:
-            embedder = Embedder(settings.embedding_model)
+            embedder = Embedder(settings.embedding_model, dim=settings.embedding_dim)
             metadata_store = MetadataStore(settings.sqlite_path)
-            vector_store = VectorStore(settings.index_dir, dim=384)
+            vector_store = VectorStore(settings.index_dir, dim=settings.embedding_dim)
             retriever = Retriever(embedder, vector_store, metadata_store)
             chunks = retriever.retrieve(question, settings.top_k)
             if not chunks:
-                answer = "I don’t have enough information in the indexed documents.\n\nSources\n- None"
+                answer = "I don’t have enough information in the indexed documents."
             else:
                 prompt = build_prompt(question, chunks)
                 generator = OllamaGenerator(settings.ollama_base_url, settings.ollama_model, settings.ollama_timeout_seconds)
@@ -58,11 +66,14 @@ with chat_tab:
                     answer = f"Error: {exc}"
             st.markdown(answer)
             st.markdown("### Sources")
-            seen = set()
-            for chunk in chunks:
-                key = (chunk.file_name, chunk.locator)
-                if key in seen:
-                    continue
-                seen.add(key)
-                st.write(f"- {chunk.file_name} ({chunk.locator})")
+            if not chunks:
+                st.write("- None")
+            else:
+                seen = set()
+                for chunk in chunks:
+                    key = (chunk.file_name, chunk.locator)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    st.write(f"- {chunk.file_name} ({chunk.locator})")
             metadata_store.close()
