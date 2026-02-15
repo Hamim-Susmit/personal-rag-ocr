@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+personal-rag/.venv/
+personal-rag/data/metadata.db
+personal-rag/data/index/*
+!personal-rag/data/index/.gitkeep
+personal-rag/data/raw_docs/*
+!personal-rag/data/raw_docs/.gitkeep
+personal-rag/**/__pycache__/
